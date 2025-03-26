@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatGPT CSV Interaction Tool</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #343a40;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .response-container {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            margin-top: 20px;
+            border: 1px solid #dee2e6;
+        }
+        .loading {
+            text-align: center;
+            display: none;
+        }
+        .btn-primary {
+            background-color: #4a6fa5;
+            border-color: #4a6fa5;
+        }
+        .btn-primary:hover {
+            background-color: #385988;
+            border-color: #385988;
+        }
+        .form-label {
+            font-weight: 600;
+        }
+        .info-text {
+            color: #6c757d;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ChatGPT CSV Interaction Tool</h1>
+        
+        <form id="chatForm">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="email" class="form-label">ChatGPT Email:</label>
+                    <input type="email" class="form-control" id="email" name="email" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="password" class="form-label">Password:</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="initialPrompt" class="form-label">Initial Prompt:</label>
+                <textarea class="form-control" id="initialPrompt" name="initialPrompt" rows="3" required></textarea>
+                <div class="info-text">Enter the first prompt you want to send to ChatGPT</div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="replyPrompt" class="form-label">Reply Prompt (Optional):</label>
+                <textarea class="form-control" id="replyPrompt" name="replyPrompt" rows="3"></textarea>
+                <div class="info-text">Enter a follow-up prompt to send after receiving the initial response (optional)</div>
+            </div>
+            
+            <div class="d-grid gap-2">
+                <button type="submit" class="btn btn-primary btn-lg">Submit</button>
+            </div>
+        </form>
+        
+        <div class="loading mt-4">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2">Processing your request. This may take a minute...</p>
+        </div>
+        
+        <div id="results" class="mt-4" style="display: none;">
+            <h3>Results</h3>
+            
+            <div class="mb-3">
+                <h5>Initial Response:</h5>
+                <div id="initialResponse" class="response-container"></div>
+                <p id="initialCsvPath" class="info-text mt-2"></p>
+            </div>
+            
+            <div id="replySection" class="mb-3" style="display: none;">
+                <h5>Reply Response:</h5>
+                <div id="replyResponse" class="response-container"></div>
+                <p id="replyCsvPath" class="info-text mt-2"></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('chatForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Show loading state
+            document.querySelector('.loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            // Get form data
+            const formData = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                initialPrompt: document.getElementById('initialPrompt').value,
+                replyPrompt: document.getElementById('replyPrompt').value
+            };
+            
+            try {
+                // Send request to the server
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Display results
+                document.getElementById('initialResponse').textContent = data.initialResponse;
+                document.getElementById('initialCsvPath').textContent = `CSV saved at: ${data.initialCsvPath}`;
+                
+                // Show reply response if available
+                if (data.replyResponse) {
+                    document.getElementById('replyResponse').textContent = data.replyResponse;
+                    document.getElementById('replyCsvPath').textContent = `CSV saved at: ${data.replyCsvPath}`;
+                    document.getElementById('replySection').style.display = 'block';
+                } else {
+                    document.getElementById('replySection').style.display = 'none';
+                }
+                
+                // Show results section
+                document.getElementById('results').style.display = 'block';
+            } catch (error) {
+                alert('Error: ' + error.message);
+                console.error('Error:', error);
+            } finally {
+                // Hide loading state
+                document.querySelector('.loading').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html> 
