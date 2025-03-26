@@ -9,6 +9,7 @@ A script that logs into ChatGPT, enters user-provided prompts, retrieves respons
 - Saves all responses in CSV format
 - Provides a simple web interface for user input
 - Uses Express.js for backend and Playwright for automation
+- Handles CAPTCHA challenges through manual intervention
 
 ## Prerequisites
 
@@ -58,10 +59,22 @@ A script that logs into ChatGPT, enters user-provided prompts, retrieves respons
 
 6. All CSV files are saved in the `outputs` directory.
 
+## Handling CAPTCHAs
+
+This application now includes support for handling CAPTCHA challenges during the login process:
+
+1. The browser window will remain visible during automation
+2. If a CAPTCHA is detected, the script will pause and wait
+3. You'll need to manually solve the CAPTCHA in the browser window
+4. Once solved, the script will automatically continue
+5. The script provides a 5-minute timeout for solving CAPTCHAs
+
+This approach ensures that the automation can work even when OpenAI requires CAPTCHA verification.
+
 ## Important Notes
 
 - For security reasons, your credentials are not stored and are only used for the current session.
-- By default, the browser automation runs in non-headless mode (visible browser) for debugging purposes. For production use, modify the `headless` option to `true` in the `chatgpt-service.js` file.
+- The browser automation runs in non-headless mode (visible browser) to allow for manual CAPTCHA solving.
 - The automation may break if ChatGPT updates its UI. Check for updates to this script if you encounter issues.
 
 ## Files and Structure

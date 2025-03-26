@@ -18,7 +18,8 @@ if (!fs.existsSync(outputDir)) {
  * @returns {Object} - Results with initial and reply responses, and paths to CSV files
  */
 async function chatGPTInteraction(email, password, initialPrompt, replyPrompt) {
-  const browser = await chromium.launch({ headless: false }); // Set to true in production
+  // Always launch in non-headless mode so user can see and solve CAPTCHAs
+  const browser = await chromium.launch({ headless: false });
   const context = await browser.newContext();
   const page = await context.newPage();
   
@@ -36,14 +37,28 @@ async function chatGPTInteraction(email, password, initialPrompt, replyPrompt) {
     await page.fill('input[name="username"]', email);
     await page.click('button[type="submit"]'); // Continue after email
     
-    // Wait for password field and submit
-    await page.waitForSelector('input[name="password"]', { timeout: 10000 });
+    // Check for CAPTCHA after email submission
+    const hasCaptchaAfterEmail = await checkForCaptcha(page);
+    if (hasCaptchaAfterEmail) {
+      console.log('CAPTCHA detected after email submission. Please solve it manually in the browser window.');
+      await waitForCaptchaSolution(page, 'input[name="password"]');
+    }
+    
+    // If we got past the CAPTCHA (or there wasn't one), proceed with password
+    await page.waitForSelector('input[name="password"]', { timeout: 30000 });
     await page.fill('input[name="password"]', password);
     await page.click('button[type="submit"]');
     
+    // Check for CAPTCHA again after password submission
+    const hasCaptchaAfterPassword = await checkForCaptcha(page);
+    if (hasCaptchaAfterPassword) {
+      console.log('CAPTCHA detected after password submission. Please solve it manually in the browser window.');
+      await waitForCaptchaSolution(page, 'textarea[data-id="root"]');
+    }
+    
     // Wait for chat interface to load
     console.log('Waiting for ChatGPT interface to load...');
-    await page.waitForSelector('textarea[data-id="root"]', { timeout: 30000 });
+    await page.waitForSelector('textarea[data-id="root"]', { timeout: 60000 });
     
     // Input the initial prompt
     console.log('Sending initial prompt...');
@@ -120,6 +135,59 @@ async function chatGPTInteraction(email, password, initialPrompt, replyPrompt) {
   } finally {
     await browser.close();
   }
+}
+
+/**
+ * Checks if a CAPTCHA is present on the page
+ * @param {Page} page - Playwright page object
+ * @returns {Promise<boolean>} - Whether a CAPTCHA was detected
+ */
+async function checkForCaptcha(page) {
+  // Common CAPTCHA elements and text to look for
+  const captchaSelectors = [
+    'iframe[title*="recaptcha"]',
+    'iframe[src*="recaptcha"]',
+    'iframe[src*="captcha"]',
+    'div[class*="captcha"]',
+    'div[id*="captcha"]'
+  ];
+  
+  const captchaText = [
+    'captcha',
+    'robot',
+    'verification',
+    'verify',
+    'human'
+  ];
+  
+  // Check for CAPTCHA elements
+  for (const selector of captchaSelectors) {
+    const hasCaptcha = await page.$(selector).then(Boolean);
+    if (hasCaptcha) return true;
+  }
+  
+  // Check for CAPTCHA text in page content
+  const pageContent = await page.content();
+  for (const text of captchaText) {
+    if (pageContent.toLowerCase().includes(text)) return true;
+  }
+  
+  return false;
+}
+
+/**
+ * Waits for the user to manually solve a CAPTCHA
+ * @param {Page} page - Playwright page object
+ * @param {string} nextSelector - Selector to wait for after CAPTCHA is solved
+ * @returns {Promise<void>}
+ */
+async function waitForCaptchaSolution(page, nextSelector) {
+  console.log('Please solve the CAPTCHA in the browser window...');
+  console.log('The script will automatically continue once the CAPTCHA is solved.');
+  
+  // Wait for the next expected element to appear, which indicates the CAPTCHA was solved
+  await page.waitForSelector(nextSelector, { timeout: 300000 }); // 5-minute timeout for solving
+  console.log('CAPTCHA appears to be solved, continuing...');
 }
 
 /**

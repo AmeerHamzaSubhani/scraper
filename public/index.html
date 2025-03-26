@@ -40,6 +40,15 @@
             text-align: center;
             display: none;
         }
+        .captcha-notice {
+            margin-top: 15px;
+            padding: 10px 15px;
+            background-color: #fff3cd;
+            color: #856404;
+            border-radius: 5px;
+            border: 1px solid #ffeeba;
+            display: none;
+        }
         .btn-primary {
             background-color: #4a6fa5;
             border-color: #4a6fa5;
@@ -95,7 +104,10 @@
             <div class="spinner-border text-primary" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
-            <p class="mt-2">Processing your request. This may take a minute...</p>
+            <p class="mt-2" id="loadingText">Processing your request. This may take a minute...</p>
+            <div class="captcha-notice" id="captchaNotice">
+                <strong>CAPTCHA Notice:</strong> If you see a CAPTCHA in the browser window that opens, please solve it to continue the process. The script will automatically proceed after you've solved the CAPTCHA.
+            </div>
         </div>
         
         <div id="results" class="mt-4" style="display: none;">
@@ -122,6 +134,7 @@
             // Show loading state
             document.querySelector('.loading').style.display = 'block';
             document.getElementById('results').style.display = 'none';
+            document.getElementById('captchaNotice').style.display = 'block';
             
             // Get form data
             const formData = {
@@ -140,6 +153,11 @@
                     },
                     body: JSON.stringify(formData)
                 });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Server error');
+                }
                 
                 const data = await response.json();
                 
@@ -168,6 +186,7 @@
             } finally {
                 // Hide loading state
                 document.querySelector('.loading').style.display = 'none';
+                document.getElementById('captchaNotice').style.display = 'none';
             }
         });
     </script>
