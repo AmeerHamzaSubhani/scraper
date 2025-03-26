@@ -1482,7 +1482,7 @@ async function chatGPTInteraction(email, password, initialPrompt, replyPrompt, c
                     // Wait for any content changes that might indicate a response
                     await page.waitForFunction(() => {
                         // Look for changes in any part of the page that could be a response
-                        const allParagraphs = document.querySelectorAll(`p, div.${sr-only}, span`);
+                        const allParagraphs = document.querySelectorAll(`p, div, span`);
                         for (const element of allParagraphs) {
                             // If element has substantial text and isn't user input
                             if (element.innerText &&
